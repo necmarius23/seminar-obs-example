@@ -1,0 +1,160 @@
+services:
+
+  # ── Database ─────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shopdb
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shoppassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d shopdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Application ───────────────────────────────────────────────────────────────
+  shop:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/shopdb
+      DB_USER: shop
+      DB_PASS: shoppassword
+      # ── OTel Java Agent configuration ──────────────────────────────────────
+      # All signals (traces, metrics, logs) go to the OTel Collector via OTLP/gRPC
+      OTEL_SERVICE_NAME: shop-service
+      OTEL_RESOURCE_ATTRIBUTES: "service.version=1.0.0,deployment.environment=docker"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      # Capture SLF4J/Logback logs and forward as OTLP log records
+      OTEL_INSTRUMENTATION_LOGBACK_APPENDER_ENABLED: "true"
+      # Include MDC attributes (traceId, spanId) in exported log records
+      OTEL_INSTRUMENTATION_LOGBACK_APPENDER_EXPERIMENTAL_LOG_ATTRIBUTES: "true"
+      # Metric export interval (ms)
+      OTEL_METRIC_EXPORT_INTERVAL: "15000"
+      # JVM runtime metrics from the agent
+      OTEL_INSTRUMENTATION_JVM_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── OpenTelemetry Collector ───────────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.152.0
+    command: ["--config=/etc/otel/otel-collector-config.yml"]
+    restart: unless-stopped
+    volumes:
+      - ./otel/otel-collector-config.yml:/etc/otel/otel-collector-config.yml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC (app → collector)
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus metrics exporter (collector → Prometheus)
+      - "13133:13133" # health_check extension
+    depends_on:
+      - tempo
+      - loki
+
+  # ── Grafana Tempo (traces) ────────────────────────────────────────────────────
+  tempo:
+    image: grafana/tempo:2.6.0
+    user: "0"
+    command: ["-config.file=/etc/tempo.yml"]
+    volumes:
+      - ./otel/tempo.yml:/etc/tempo.yml:ro
+      - tempo_data:/tmp/tempo
+    ports:
+      - "3200:3200"   # Tempo HTTP query API (Grafana datasource)
+
+  # ── Grafana Loki (logs) ───────────────────────────────────────────────────────
+  loki:
+    image: grafana/loki:3.2.0
+    user: "0"
+    command: ["-config.file=/etc/loki/loki.yml"]
+    volumes:
+      - ./otel/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/tmp/loki
+    ports:
+      - "3100:3100"
+
+  # ── Prometheus (metrics) ──────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.55.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+      - "--web.enable-remote-write-receiver"
+      - "--storage.tsdb.retention.time=7d"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - otel-collector
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_FEATURE_TOGGLES_ENABLE: "traceqlEditor"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+
+  # ── Traffic simulator ────────────────────────────────────────────────────────
+  traffic-sim:
+    image: alpine:3.20
+    command: >
+      sh -c "apk add --no-cache bash curl jq && bash /scripts/traffic-sim.sh"
+    volumes:
+      - ./scripts/traffic-sim.sh:/scripts/traffic-sim.sh:ro
+    environment:
+      SHOP_URL: http://shop:8080
+      THINK_MIN: "1"
+      THINK_MAX: "4"
+    depends_on:
+      shop:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── React Frontend ───────────────────────────────────────────────────────────
+  frontend:
+    build: ./frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      shop:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  tempo_data:
+  loki_data:
+  prometheus_data:
+  grafana_data:

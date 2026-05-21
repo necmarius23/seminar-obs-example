@@ -1,0 +1,387 @@
+{
+  "id": null,
+  "uid": "shop-observability",
+  "title": "Online Shop — Observability",
+  "tags": ["shop", "observability", "opentelemetry"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "constant",
+        "label": "Service",
+        "query": "shop-service",
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+
+    { "type": "row", "title": "Business KPIs", "gridPos": {"x":0,"y":0,"w":24,"h":1}, "id": 100, "collapsed": false },
+
+    {
+      "id": 1, "title": "Orders (1 h)", "type": "stat",
+      "gridPos": {"x":0,"y":1,"w":6,"h":4},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "sum(increase(shop_orders_created_total{service_name=\"$service\"}[1h]))",
+        "legendFormat": "Orders"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode":"thresholds"},
+          "thresholds": {"mode":"absolute","steps":[{"color":"green","value":null}]},
+          "unit": "short", "decimals": 0
+        }
+      },
+      "options": {"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background","graphMode":"none"}
+    },
+
+    {
+      "id": 2, "title": "Revenue (1 h)", "type": "stat",
+      "gridPos": {"x":6,"y":1,"w":6,"h":4},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "sum(increase(shop_orders_value_sum{service_name=\"$service\"}[1h]))",
+        "legendFormat": "Revenue $"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode":"thresholds"},
+          "thresholds": {"mode":"absolute","steps":[{"color":"blue","value":null}]},
+          "unit": "currencyUSD", "decimals": 2
+        }
+      },
+      "options": {"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background","graphMode":"none"}
+    },
+
+    {
+      "id": 3, "title": "Cart Items Added (1 h)", "type": "stat",
+      "gridPos": {"x":12,"y":1,"w":6,"h":4},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "sum(increase(shop_cart_items_added_total{service_name=\"$service\"}[1h]))",
+        "legendFormat": "Items"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode":"thresholds"},
+          "thresholds": {"mode":"absolute","steps":[{"color":"purple","value":null}]},
+          "unit": "short", "decimals": 0
+        }
+      },
+      "options": {"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background","graphMode":"none"}
+    },
+
+    {
+      "id": 4, "title": "Product Views (1 h)", "type": "stat",
+      "gridPos": {"x":18,"y":1,"w":6,"h":4},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "sum(increase(shop_products_viewed_total{service_name=\"$service\"}[1h]))",
+        "legendFormat": "Views"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode":"thresholds"},
+          "thresholds": {"mode":"absolute","steps":[{"color":"orange","value":null}]},
+          "unit": "short", "decimals": 0
+        }
+      },
+      "options": {"reduceOptions":{"calcs":["lastNotNull"]},"colorMode":"background","graphMode":"none"}
+    },
+
+    { "type": "row", "title": "Business Metrics — Trends", "gridPos": {"x":0,"y":5,"w":24,"h":1}, "id": 101, "collapsed": false },
+
+    {
+      "id": 5, "title": "Orders Created Rate", "type": "timeseries",
+      "gridPos": {"x":0,"y":6,"w":12,"h":8},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [
+        {
+          "expr": "rate(shop_orders_created_total{service_name=\"$service\"}[5m])",
+          "legendFormat": "orders/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit":"ops","color":{"mode":"palette-classic"}},
+        "overrides": []
+      },
+      "options": {"tooltip":{"mode":"multi"},"legend":{"displayMode":"list"}}
+    },
+
+    {
+      "id": 6, "title": "Order Value — p50 / p95 / p99", "type": "timeseries",
+      "gridPos": {"x":12,"y":6,"w":12,"h":8},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(shop_orders_value_bucket{service_name=\"$service\"}[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(shop_orders_value_bucket{service_name=\"$service\"}[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(shop_orders_value_bucket{service_name=\"$service\"}[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}},
+      "options": {"tooltip":{"mode":"multi"}}
+    },
+
+    {
+      "id": 7, "title": "Checkout Attempts vs Failures", "type": "timeseries",
+      "gridPos": {"x":0,"y":14,"w":12,"h":7},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [
+        {
+          "expr": "rate(shop_checkout_attempts_total{service_name=\"$service\"}[5m])",
+          "legendFormat": "attempts/s"
+        },
+        {
+          "expr": "rate(shop_checkout_failures_total{service_name=\"$service\"}[5m])",
+          "legendFormat": "failures/s"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit":"ops"},
+        "overrides": [{"matcher":{"id":"byName","options":"failures/s"},"properties":[{"id":"color","value":{"fixedColor":"red","mode":"fixed"}}]}]
+      }
+    },
+
+    {
+      "id": 8, "title": "Active Carts", "type": "timeseries",
+      "gridPos": {"x":12,"y":14,"w":12,"h":7},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "shop_carts_active{service_name=\"$service\"}",
+        "legendFormat": "active carts"
+      }],
+      "fieldConfig": {"defaults": {"unit":"short","min":0}},
+      "options": {"tooltip":{"mode":"single"}}
+    },
+
+    { "type": "row", "title": "HTTP Traffic", "gridPos": {"x":0,"y":21,"w":24,"h":1}, "id": 102, "collapsed": false },
+
+    {
+      "id": 9, "title": "HTTP Request Rate", "type": "timeseries",
+      "gridPos": {"x":0,"y":22,"w":8,"h":8},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "sum by (http_route, http_request_method) (rate(http_server_request_duration_seconds_count{service_name=\"$service\"}[5m]))",
+        "legendFormat": "{{http_request_method}} {{http_route}}"
+      }],
+      "fieldConfig": {"defaults": {"unit": "reqps"}},
+      "options": {"tooltip":{"mode":"multi"},"legend":{"displayMode":"table","placement":"bottom"}}
+    },
+
+    {
+      "id": 10, "title": "HTTP Error Rate (5xx)", "type": "timeseries",
+      "gridPos": {"x":8,"y":22,"w":8,"h":8},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "sum by (http_route) (rate(http_server_request_duration_seconds_count{service_name=\"$service\",http_response_status_code=~\"5..\"}[5m]))",
+        "legendFormat": "5xx {{http_route}}"
+      }],
+      "fieldConfig": {
+        "defaults": {"unit":"reqps","color":{"fixedColor":"red","mode":"fixed"}},
+        "overrides": []
+      }
+    },
+
+    {
+      "id": 11, "title": "HTTP Latency — p50 / p95 / p99", "type": "timeseries",
+      "gridPos": {"x":16,"y":22,"w":8,"h":8},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[5m])))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[5m])))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_seconds_bucket{service_name=\"$service\"}[5m])))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "options": {"tooltip":{"mode":"multi"}}
+    },
+
+    { "type": "row", "title": "JVM — Memory & CPU", "gridPos": {"x":0,"y":30,"w":24,"h":1}, "id": 103, "collapsed": false },
+
+    {
+      "id": 12, "title": "JVM Heap Memory", "type": "timeseries",
+      "gridPos": {"x":0,"y":31,"w":8,"h":8},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [
+        {
+          "expr": "sum by (jvm_memory_pool_name) (jvm_memory_used_bytes{service_name=\"$service\",jvm_memory_type=\"heap\"})",
+          "legendFormat": "used — {{jvm_memory_pool_name}}"
+        },
+        {
+          "expr": "sum(jvm_memory_limit_bytes{service_name=\"$service\",jvm_memory_type=\"heap\"})",
+          "legendFormat": "limit"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit":"bytes"},
+        "overrides": [{"matcher":{"id":"byName","options":"limit"},"properties":[{"id":"custom.lineStyle","value":{"fill":"dash"}},{"id":"color","value":{"fixedColor":"red","mode":"fixed"}}]}]
+      }
+    },
+
+    {
+      "id": 13, "title": "JVM Non-Heap Memory", "type": "timeseries",
+      "gridPos": {"x":8,"y":31,"w":8,"h":8},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [
+        {
+          "expr": "sum by (jvm_memory_pool_name) (jvm_memory_used_bytes{service_name=\"$service\",jvm_memory_type=\"non_heap\"})",
+          "legendFormat": "used — {{jvm_memory_pool_name}}"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit":"bytes"}}
+    },
+
+    {
+      "id": 14, "title": "CPU Utilisation", "type": "timeseries",
+      "gridPos": {"x":16,"y":31,"w":8,"h":8},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [
+        {
+          "expr": "jvm_cpu_recent_utilization{service_name=\"$service\"}",
+          "legendFormat": "JVM CPU (recent)"
+        },
+        {
+          "expr": "process_cpu_time_seconds_total{service_name=\"$service\"}",
+          "legendFormat": "process CPU time (cumulative)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit":"percentunit","min":0,"max":1},
+        "overrides": [{"matcher":{"id":"byName","options":"process CPU time (cumulative)"},"properties":[{"id":"unit","value":"s"},{"id":"custom.axisPlacement","value":"right"}]}]
+      }
+    },
+
+    {
+      "id": 15, "title": "JVM Threads", "type": "timeseries",
+      "gridPos": {"x":0,"y":39,"w":8,"h":7},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "jvm_thread_count{service_name=\"$service\"}",
+        "legendFormat": "{{jvm_thread_state}}"
+      }],
+      "fieldConfig": {"defaults": {"unit":"short","min":0}}
+    },
+
+    {
+      "id": 16, "title": "JVM GC Duration", "type": "timeseries",
+      "gridPos": {"x":8,"y":39,"w":8,"h":7},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "rate(jvm_gc_duration_seconds_sum{service_name=\"$service\"}[5m])",
+        "legendFormat": "{{jvm_gc_name}}"
+      }],
+      "fieldConfig": {"defaults": {"unit":"s"}}
+    },
+
+    {
+      "id": 17, "title": "JVM Classes Loaded", "type": "timeseries",
+      "gridPos": {"x":16,"y":39,"w":8,"h":7},
+      "datasource": {"type":"prometheus","uid":"prometheus"},
+      "targets": [{
+        "expr": "jvm_class_count{service_name=\"$service\"}",
+        "legendFormat": "classes loaded"
+      }],
+      "fieldConfig": {"defaults": {"unit":"short","min":0}}
+    },
+
+    { "type": "row", "title": "Traces", "gridPos": {"x":0,"y":46,"w":24,"h":1}, "id": 104, "collapsed": false },
+
+    {
+      "id": 18, "title": "Recent Traces — shop-service", "type": "table",
+      "gridPos": {"x":0,"y":47,"w":24,"h":12},
+      "datasource": {"type":"tempo","uid":"tempo"},
+      "targets": [{
+        "refId": "A",
+        "datasource": {"type":"tempo","uid":"tempo"},
+        "queryType": "traceqlSearch",
+        "filters": [
+          {
+            "id": "service-name",
+            "operator": "=",
+            "scope": "resource",
+            "tag": "service.name",
+            "value": ["shop-service"],
+            "valueType": "string"
+          }
+        ],
+        "limit": 20,
+        "tableType": "traces"
+      }],
+      "options": {
+        "sortBy": [{"desc": true, "displayName": "Start time"}]
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": {"id":"byName","options":"traceID"},  "properties": [{"id":"custom.width","value":280},{"id":"links","value":[{"title":"Open in Tempo","url":"/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"queryType\":\"traceql\",\"query\":\"${__value.raw}\",\"refId\":\"A\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}"}]}] },
+          { "matcher": {"id":"byName","options":"Duration"}, "properties": [{"id":"custom.width","value":100},{"id":"unit","value":"ns"}] },
+          { "matcher": {"id":"byName","options":"Start time"},"properties": [{"id":"custom.width","value":180}] }
+        ]
+      }
+    },
+
+    { "type": "row", "title": "Logs", "gridPos": {"x":0,"y":59,"w":24,"h":1}, "id": 105, "collapsed": false },
+
+    {
+      "id": 19, "title": "Application Logs", "type": "logs",
+      "gridPos": {"x":0,"y":60,"w":24,"h":10},
+      "datasource": {"type":"loki","uid":"loki"},
+      "targets": [{
+        "datasource": {"type":"loki","uid":"loki"},
+        "expr": "{service_name=\"shop-service\"}",
+        "queryType": "range"
+      }],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+
+    {
+      "id": 20, "title": "Error Logs", "type": "logs",
+      "gridPos": {"x":0,"y":70,"w":24,"h":8},
+      "datasource": {"type":"loki","uid":"loki"},
+      "targets": [{
+        "datasource": {"type":"loki","uid":"loki"},
+        "expr": "{service_name=\"shop-service\"} | detected_level=\"error\"",
+        "queryType": "range"
+      }],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      }
+    }
+  ]
+}

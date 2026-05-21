@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: "shop-monitor"
+
+scrape_configs:
+  # OTel Collector Prometheus exporter — receives all OTLP metrics (JVM, HTTP, custom business metrics)
+  - job_name: "otel-collector"
+    static_configs:
+      - targets: ["otel-collector:8889"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+
+  # Spring Boot Actuator — Micrometer Prometheus endpoint (Spring-specific metrics + health)
+  - job_name: "shop-actuator"
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["shop:8080"]
+    relabel_configs:
+      - target_label: service_name
+        replacement: "shop-service"
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

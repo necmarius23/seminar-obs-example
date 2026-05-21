@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Shop Service — Architecture</title>
+  <style>
+    html, body { margin: 0; padding: 40px; background: #E8EFF8;
+                 display: flex; justify-content: center; align-items: center;
+                 min-height: 100vh; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1380 810"
+     width="1380" height="810" style="display:block;max-width:100%;height:auto">
+<defs>
+  <!-- Dot grid -->
+  <pattern id="dots" x="0" y="0" width="28" height="28" patternUnits="userSpaceOnUse">
+    <circle cx="1.5" cy="1.5" r="1.4" fill="#C2D3E8" opacity="0.55"/>
+  </pattern>
+
+  <!-- Shadows -->
+  <filter id="s" x="-25%" y="-25%" width="150%" height="150%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="b"/>
+    <feOffset dx="0" dy="4" in="b" result="o"/>
+    <feFlood flood-color="#1A4FA0" flood-opacity="0.09" result="c"/>
+    <feComposite in="c" in2="o" operator="in" result="sh"/>
+    <feMerge><feMergeNode in="sh"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="16" result="b"/>
+    <feOffset dx="0" dy="8" in="b" result="o"/>
+    <feFlood flood-color="#1A4FA0" flood-opacity="0.15" result="c"/>
+    <feComposite in="c" in2="o" operator="in" result="shadow"/>
+    <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+
+  <!-- Arrow markers -->
+  <marker id="a" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto">
+    <path d="M0,0.5 L0,7.5 L9,4z" fill="#1A56DB"/>
+  </marker>
+  <marker id="am" markerWidth="10" markerHeight="10" refX="8.5" refY="4" orient="auto">
+    <path d="M0,0.5 L0,7.5 L9,4z" fill="#93B4D8"/>
+  </marker>
+
+  <!-- Blue gradient for hero icon -->
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#1C5EDE"/>
+    <stop offset="100%" stop-color="#2D78F5"/>
+  </linearGradient>
+
+  <!-- Blueprint grid inside hero icon -->
+  <pattern id="grid" x="0" y="0" width="7" height="7" patternUnits="userSpaceOnUse">
+    <path d="M7 0H0V7" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="0.6"/>
+  </pattern>
+
+  <!-- Soft radial glow behind hero -->
+  <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#D5E6FF" stop-opacity="0.65"/>
+    <stop offset="100%" stop-color="#E8EFF8" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+
+<!-- Background -->
+<rect width="1380" height="810" fill="#E8EFF8"/>
+<rect width="1380" height="810" fill="url(#dots)"/>
+
+<!-- Hero glow -->
+<ellipse cx="630" cy="210" rx="210" ry="150" fill="url(#glow)"/>
+
+<!-- ═══════════════════ TITLE ═════════════════════════════════════════════ -->
+<text x="690" y="50" text-anchor="middle"
+      font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif"
+      font-size="21" font-weight="700" letter-spacing="0.5" fill="#1E3A5F">
+  Online Shop — Observability Architecture
+</text>
+
+<!-- Section labels -->
+<text x="430" y="122" text-anchor="middle"
+      font-family="'Courier New',monospace" font-size="9" font-weight="700"
+      letter-spacing="2" fill="#A8C0DA">APPLICATION LAYER</text>
+<text x="630" y="430" text-anchor="middle"
+      font-family="'Courier New',monospace" font-size="9" font-weight="700"
+      letter-spacing="2" fill="#A8C0DA">COLLECTION</text>
+<text x="950" y="430" text-anchor="middle"
+      font-family="'Courier New',monospace" font-size="9" font-weight="700"
+      letter-spacing="2" fill="#A8C0DA">OBSERVABILITY BACKENDS</text>
+
+<!-- ═══════════════════ EDGES ════════════════════════════════════════════ -->
+
+<!-- 1  User → Frontend -->
+<line x1="178" y1="210" x2="268" y2="210" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 2  Frontend → Spring Boot -->
+<line x1="436" y1="210" x2="542" y2="210" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 3  Spring Boot → PostgreSQL -->
+<line x1="736" y1="210" x2="850" y2="210" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 4  Traffic Sim → Spring Boot (dashed diagonal) -->
+<path d="M178,498 C360,498 542,370 542,232"
+      fill="none" stroke="#1A56DB" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#a)"/>
+<!-- 5  Badge → Spring Boot top (connector) -->
+<line x1="630" y1="124" x2="630" y2="148" stroke="#1A56DB" stroke-width="1.5" stroke-dasharray="3,2"/>
+<!-- 6  Spring Boot → OTel Collector (vertical) -->
+<line x1="630" y1="246" x2="630" y2="446" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 7  OTel → Tempo (diagonal up) -->
+<path d="M722,462 L840,356" fill="none" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 8  OTel → Prometheus (horizontal) -->
+<line x1="722" y1="474" x2="840" y2="474" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 9  OTel → Loki (diagonal down) -->
+<path d="M722,486 L840,586" fill="none" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 10 Tempo → Grafana -->
+<path d="M990,356 L1118,460" fill="none" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 11 Prometheus → Grafana (horizontal) -->
+<line x1="998" y1="474" x2="1118" y2="474" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 12 Loki → Grafana -->
+<path d="M982,586 L1118,488" fill="none" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 13 User → Grafana dashboards (long muted arc) -->
+<path d="M100,238 C100,752 1196,752 1196,502"
+      fill="none" stroke="#93B4D8" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#am)"/>
+
+<!-- ═══════════════════ CONNECTOR LABELS ════════════════════════════════ -->
+<!-- Each: translucent white rect, dashed blue border, monospace label    -->
+
+<!-- Macro: position is the label centre. rect is centred on (0,0).       -->
+
+<g transform="translate(223,198)">
+  <rect x="-40" y="-12" width="80" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">HTTP :3001</text>
+</g>
+
+<g transform="translate(489,198)">
+  <rect x="-36" y="-12" width="72" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">REST /api</text>
+</g>
+
+<g transform="translate(790,198)">
+  <rect x="-25" y="-12" width="50" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">JDBC</text>
+</g>
+
+<g transform="translate(322,375)">
+  <rect x="-40" y="-12" width="80" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">HTTP load</text>
+</g>
+
+<!-- vertical OTLP label — placed right of the line -->
+<g transform="translate(700,346)">
+  <rect x="-57" y="-12" width="114" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">OTLP gRPC :4317</text>
+</g>
+
+<g transform="translate(797,400)">
+  <rect x="-45" y="-12" width="90" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">OTLP gRPC</text>
+</g>
+
+<g transform="translate(780,460)">
+  <rect x="-45" y="-12" width="90" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">scrape :8889</text>
+</g>
+
+<g transform="translate(797,542)">
+  <rect x="-42" y="-12" width="84" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">OTLP HTTP</text>
+</g>
+
+<g transform="translate(1064,401)">
+  <rect x="-34" y="-12" width="68" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">TraceQL</text>
+</g>
+
+<g transform="translate(1060,460)">
+  <rect x="-30" y="-12" width="60" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">PromQL</text>
+</g>
+
+<g transform="translate(1060,545)">
+  <rect x="-28" y="-12" width="56" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#1A56DB" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.3">LogQL</text>
+</g>
+
+<g transform="translate(648,754)">
+  <rect x="-64" y="-12" width="128" height="22" rx="3"
+        fill="rgba(255,255,255,0.84)" stroke="#93B4D8" stroke-width="0.9" stroke-dasharray="3,2.5"/>
+  <text text-anchor="middle" y="5" font-family="'Courier New',monospace"
+        font-size="9.5" font-weight="700" fill="#6A90C0" letter-spacing="0.3">dashboards :3000</text>
+</g>
+
+<!-- ═══════════════════ NODES ════════════════════════════════════════════ -->
+
+<!-- ── USER BROWSER ──────────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="22" y="183" width="156" height="54" rx="14" fill="white"/>
+</g>
+<circle cx="57" cy="210" r="15" fill="#EBF2FF"/>
+<!-- Globe -->
+<circle cx="57" cy="210" r="9.5" fill="none" stroke="#1A56DB" stroke-width="1.6"/>
+<ellipse cx="57" cy="210" rx="5.5" ry="9.5" fill="none" stroke="#1A56DB" stroke-width="1"/>
+<line x1="47.5" y1="206" x2="66.5" y2="206" stroke="#1A56DB" stroke-width="1"/>
+<line x1="47.5" y1="214" x2="66.5" y2="214" stroke="#1A56DB" stroke-width="1"/>
+<text x="106" y="206" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="13" font-weight="700" fill="#1E3A5F">User</text>
+<text x="106" y="222" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10.5" fill="#6B8CAE">Browser</text>
+
+<!-- ── REACT FRONTEND ─────────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="268" y="183" width="168" height="54" rx="14" fill="white"/>
+</g>
+<circle cx="304" cy="210" r="15" fill="#EBF2FF"/>
+<!-- React atom -->
+<circle cx="304" cy="210" r="4" fill="#1A56DB"/>
+<ellipse cx="304" cy="210" rx="10" ry="4" fill="none" stroke="#1A56DB" stroke-width="1.6"/>
+<ellipse cx="304" cy="210" rx="10" ry="4" fill="none" stroke="#1A56DB" stroke-width="1.6" transform="rotate(60 304 210)"/>
+<ellipse cx="304" cy="210" rx="10" ry="4" fill="none" stroke="#1A56DB" stroke-width="1.6" transform="rotate(-60 304 210)"/>
+<text x="370" y="205" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="12.5" font-weight="700" fill="#1E3A5F">React Frontend</text>
+<text x="370" y="221" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#6B8CAE">Nginx · Vite · :3001</text>
+
+<!-- ── SPRING BOOT (HERO) ─────────────────────────────────────────────── -->
+<!-- Hero card — larger with blue icon panel -->
+<g filter="url(#sh)">
+  <rect x="542" y="148" width="194" height="98" rx="20" fill="white"/>
+</g>
+<!-- Blue icon square -->
+<rect x="556" y="160" width="54" height="54" rx="12" fill="url(#bg)"/>
+<rect x="556" y="160" width="54" height="54" rx="12" fill="url(#grid)"/>
+<!-- Leaf icon (Spring) in white -->
+<path d="M583,178 C574,185 573,196 579,200 C572,198 571,206 577,208 C570,209 569,216 575,217 C584,219 593,212 594,204 C599,195 596,182 583,178Z"
+      fill="white" opacity="0.93"/>
+<!-- Text -->
+<text x="648" y="183" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="14" font-weight="700" fill="#1E3A5F">Spring Boot API</text>
+<text x="648" y="200" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10.5" fill="#6B8CAE">:8080 · Spring Data JPA</text>
+<text x="648" y="218" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#1A56DB" font-weight="600">manual OTel spans + metrics</text>
+<!-- Bottom pill dots (decorative, like reference) -->
+<circle cx="618" cy="234" r="4" fill="#DEEAFF"/>
+<circle cx="630" cy="234" r="4" fill="#C8D9F8"/>
+<circle cx="642" cy="234" r="4" fill="#B0C8F5"/>
+
+<!-- ── JAVA AGENT BADGE ────────────────────────────────────────────────── -->
+<!-- Sits above the hero card, dashed border style like the reference -->
+<g filter="url(#s)">
+  <rect x="567" y="92" width="136" height="30" rx="15" fill="white"/>
+</g>
+<rect x="567" y="92" width="136" height="30" rx="15" fill="none"
+      stroke="#1A56DB" stroke-width="1" stroke-dasharray="4,2.5"/>
+<!-- Agent icon dot -->
+<circle cx="586" cy="107" r="7" fill="#EBF2FF"/>
+<circle cx="586" cy="107" r="4" fill="#1A56DB" opacity="0.75"/>
+<text x="654" y="112" text-anchor="middle"
+      font-family="'Courier New',monospace"
+      font-size="9.5" font-weight="700" fill="#1A56DB" letter-spacing="0.8">JAVA AGENT v2.9</text>
+
+<!-- ── POSTGRESQL ──────────────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="850" y="183" width="155" height="54" rx="14" fill="white"/>
+</g>
+<circle cx="886" cy="210" r="15" fill="#EBF2FF"/>
+<!-- Cylinder -->
+<ellipse cx="886" cy="201" rx="8.5" ry="3.2" fill="#1A56DB" opacity="0.8"/>
+<rect x="877.5" y="201" width="17" height="13" fill="#1A56DB" opacity="0.65"/>
+<ellipse cx="886" cy="214" rx="8.5" ry="3.2" fill="#1A56DB"/>
+<text x="965" y="205" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="12.5" font-weight="700" fill="#1E3A5F">PostgreSQL</text>
+<text x="965" y="221" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#6B8CAE">:5432</text>
+
+<!-- ── TRAFFIC SIMULATOR ───────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="22" y="471" width="156" height="54" rx="14" fill="white"/>
+</g>
+<circle cx="57" cy="498" r="15" fill="#EBF2FF"/>
+<!-- Terminal icon -->
+<rect x="47" y="489" width="20" height="17" rx="3" fill="none" stroke="#1A56DB" stroke-width="1.5"/>
+<text x="57" y="502" text-anchor="middle"
+      font-family="'Courier New',monospace"
+      font-size="9.5" font-weight="700" fill="#1A56DB">&gt;_</text>
+<text x="106" y="493" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="12.5" font-weight="700" fill="#1E3A5F">Traffic Sim</text>
+<text x="106" y="509" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#6B8CAE">load generator</text>
+
+<!-- ── OTEL COLLECTOR ─────────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="543" y="447" width="176" height="58" rx="14" fill="white"/>
+</g>
+<circle cx="580" cy="476" r="16" fill="#EBF2FF"/>
+<!-- Pipeline icon: 3 horizontal bars -->
+<rect x="571" y="469" width="17" height="3" rx="1.5" fill="#1A56DB" opacity="0.6"/>
+<rect x="571" y="474.5" width="17" height="3" rx="1.5" fill="#1A56DB"/>
+<rect x="571" y="480" width="17" height="3" rx="1.5" fill="#1A56DB" opacity="0.6"/>
+<text x="663" y="471" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="12.5" font-weight="700" fill="#1E3A5F">OTel Collector</text>
+<text x="663" y="488" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#6B8CAE">contrib 0.152.0 · :4317/:4318</text>
+
+<!-- ── GRAFANA TEMPO ────────────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="840" y="330" width="150" height="54" rx="14" fill="white"/>
+</g>
+<circle cx="876" cy="357" r="15" fill="#EBF2FF"/>
+<!-- Trace spans: staggered horizontal bars -->
+<rect x="867" y="350" width="13" height="3.5" rx="1.7" fill="#1A56DB" opacity="0.55"/>
+<rect x="870" y="356" width="17" height="3.5" rx="1.7" fill="#1A56DB"/>
+<rect x="868" y="362" width="10" height="3.5" rx="1.7" fill="#1A56DB" opacity="0.75"/>
+<text x="953" y="352" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="12.5" font-weight="700" fill="#1E3A5F">Grafana Tempo</text>
+<text x="953" y="368" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#6B8CAE">traces · :3200</text>
+
+<!-- ── PROMETHEUS ──────────────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="840" y="447" width="158" height="54" rx="14" fill="white"/>
+</g>
+<circle cx="876" cy="474" r="15" fill="#EBF2FF"/>
+<!-- Bar chart -->
+<rect x="866" y="464" width="5" height="16" rx="2" fill="#1A56DB"/>
+<rect x="873" y="468" width="5" height="12" rx="2" fill="#1A56DB" opacity="0.7"/>
+<rect x="880" y="466" width="5" height="14" rx="2" fill="#1A56DB" opacity="0.85"/>
+<text x="961" y="469" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="12.5" font-weight="700" fill="#1E3A5F">Prometheus</text>
+<text x="961" y="485" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#6B8CAE">metrics · :9090</text>
+
+<!-- ── GRAFANA LOKI ─────────────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="840" y="562" width="142" height="54" rx="14" fill="white"/>
+</g>
+<circle cx="876" cy="589" r="15" fill="#EBF2FF"/>
+<!-- Log lines -->
+<rect x="866" y="581" width="15" height="3.2" rx="1.6" fill="#1A56DB"/>
+<rect x="866" y="587" width="11" height="3.2" rx="1.6" fill="#1A56DB" opacity="0.7"/>
+<rect x="866" y="593" width="13" height="3.2" rx="1.6" fill="#1A56DB" opacity="0.85"/>
+<text x="948" y="584" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="12.5" font-weight="700" fill="#1E3A5F">Grafana Loki</text>
+<text x="948" y="600" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#6B8CAE">logs · :3100</text>
+
+<!-- ── GRAFANA ─────────────────────────────────────────────────────────── -->
+<g filter="url(#s)">
+  <rect x="1118" y="447" width="158" height="54" rx="14" fill="white"/>
+</g>
+<circle cx="1154" cy="474" r="15" fill="#EBF2FF"/>
+<!-- Dashboard line chart inside a rect -->
+<rect x="1144" y="465" width="20" height="14" rx="2.5" fill="none" stroke="#1A56DB" stroke-width="1.5"/>
+<polyline points="1146,476 1150,470 1154,473 1159,467 1163,471"
+          fill="none" stroke="#1A56DB" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1231" y="469" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="12.5" font-weight="700" fill="#1E3A5F">Grafana</text>
+<text x="1231" y="485" text-anchor="middle"
+      font-family="system-ui,-apple-system,sans-serif"
+      font-size="10" fill="#6B8CAE">dashboards · :3000</text>
+
+<!-- ═══════════════════ LEGEND ═══════════════════════════════════════════ -->
+<g transform="translate(34, 730)">
+  <rect x="0" y="0" width="268" height="58" rx="10" fill="rgba(255,255,255,0.70)"/>
+  <!-- solid blue line -->
+  <line x1="16" y1="20" x2="44" y2="20" stroke="#1A56DB" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="52" y="25" font-family="system-ui,-apple-system,sans-serif"
+        font-size="11" fill="#4A6A8C">data / request flow</text>
+  <!-- dashed blue -->
+  <line x1="16" y1="42" x2="44" y2="42" stroke="#1A56DB" stroke-width="1.5"
+        stroke-dasharray="5,3" marker-end="url(#a)"/>
+  <text x="52" y="47" font-family="system-ui,-apple-system,sans-serif"
+        font-size="11" fill="#4A6A8C">simulated / indirect flow</text>
+</g>
+
+</svg>
+</body>
+</html>
